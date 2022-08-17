@@ -1,0 +1,346 @@
+From a20e42aaf7c951d823fab503bef8192f49a70ae3 Mon Sep 17 00:00:00 2001
+From: LeavaTail <starbow.duster@gmail.com>
+Date: Wed, 17 Aug 2022 00:01:48 +0900
+Subject: [PATCH 1/2] Add No-optimization into each function
+
+---
+ block/bio.c         |  6 +++---
+ block/blk-core.c    | 10 +++++-----
+ block/blk-mq.c      |  2 +-
+ fs/buffer.c         | 10 +++++-----
+ fs/fs-writeback.c   |  6 +++---
+ fs/inode.c          |  6 +++---
+ fs/mpage.c          |  4 ++--
+ lib/iov_iter.c      |  2 +-
+ mm/filemap.c        |  8 ++++----
+ mm/page-writeback.c |  6 +++---
+ mm/page_alloc.c     |  3 ++-
+ 11 files changed, 32 insertions(+), 31 deletions(-)
+
+diff --git a/block/bio.c b/block/bio.c
+index a6fb6a0b4295..c53669ac4b4c 100644
+--- a/block/bio.c
++++ b/block/bio.c
+@@ -938,7 +938,7 @@ EXPORT_SYMBOL_GPL(bio_add_zone_append_page);
+  *
+  * Return %true on success or %false on failure.
+  */
+-bool __bio_try_merge_page(struct bio *bio, struct page *page,
++bool __attribute__((optimize("O0")))  __bio_try_merge_page(struct bio *bio, struct page *page,
+ 		unsigned int len, unsigned int off, bool *same_page)
+ {
+ 	if (WARN_ON_ONCE(bio_flagged(bio, BIO_CLONED)))
+@@ -971,7 +971,7 @@ EXPORT_SYMBOL_GPL(__bio_try_merge_page);
+  * Add the data at @page + @off to @bio as a new bvec.  The caller must ensure
+  * that @bio has space for another bvec.
+  */
+-void __bio_add_page(struct bio *bio, struct page *page,
++void  __attribute__((optimize("O0"))) __bio_add_page(struct bio *bio, struct page *page,
+ 		unsigned int len, unsigned int off)
+ {
+ 	struct bio_vec *bv = &bio->bi_io_vec[bio->bi_vcnt];
+@@ -1001,7 +1001,7 @@ EXPORT_SYMBOL_GPL(__bio_add_page);
+  *	Attempt to add page(s) to the bio_vec maplist. This will only fail
+  *	if either bio->bi_vcnt == bio->bi_max_vecs or it's a cloned bio.
+  */
+-int bio_add_page(struct bio *bio, struct page *page,
++int  __attribute__((optimize("O0"))) bio_add_page(struct bio *bio, struct page *page,
+ 		 unsigned int len, unsigned int offset)
+ {
+ 	bool same_page = false;
+diff --git a/block/blk-core.c b/block/blk-core.c
+index 4d8f5fe91588..d3bf2c668bc5 100644
+--- a/block/blk-core.c
++++ b/block/blk-core.c
+@@ -794,7 +794,7 @@ static inline blk_status_t blk_check_zone_append(struct request_queue *q,
+ 	return BLK_STS_OK;
+ }
+ 
+-static noinline_for_stack bool submit_bio_checks(struct bio *bio)
++static noinline_for_stack  __attribute__((optimize("O0"))) bool submit_bio_checks(struct bio *bio)
+ {
+ 	struct block_device *bdev = bio->bi_bdev;
+ 	struct request_queue *q = bdev->bd_disk->queue;
+@@ -952,7 +952,7 @@ static blk_qc_t __submit_bio(struct bio *bio)
+  * bio_list_on_stack[1] contains bios that were submitted before the current
+  *	->submit_bio_bio, but that haven't been processed yet.
+  */
+-static blk_qc_t __submit_bio_noacct(struct bio *bio)
++static blk_qc_t  __attribute__((optimize("O0"))) __submit_bio_noacct(struct bio *bio)
+ {
+ 	struct bio_list bio_list_on_stack[2];
+ 	blk_qc_t ret = BLK_QC_T_NONE;
+@@ -998,7 +998,7 @@ static blk_qc_t __submit_bio_noacct(struct bio *bio)
+ 	return ret;
+ }
+ 
+-static blk_qc_t __submit_bio_noacct_mq(struct bio *bio)
++static blk_qc_t __attribute__((optimize("O0")))  __submit_bio_noacct_mq(struct bio *bio)
+ {
+ 	struct bio_list bio_list[2] = { };
+ 	blk_qc_t ret;
+@@ -1022,7 +1022,7 @@ static blk_qc_t __submit_bio_noacct_mq(struct bio *bio)
+  * systems and other upper level users of the block layer should use
+  * submit_bio() instead.
+  */
+-blk_qc_t submit_bio_noacct(struct bio *bio)
++blk_qc_t  __attribute__((optimize("O0"))) submit_bio_noacct(struct bio *bio)
+ {
+ 	/*
+ 	 * We only want one ->submit_bio to be active at a time, else stack
+@@ -1054,7 +1054,7 @@ EXPORT_SYMBOL(submit_bio_noacct);
+  * in @bio.  The bio must NOT be touched by thecaller until ->bi_end_io() has
+  * been called.
+  */
+-blk_qc_t submit_bio(struct bio *bio)
++blk_qc_t  __attribute__((optimize("O0"))) submit_bio(struct bio *bio)
+ {
+ 	if (blkcg_punt_bio_submit(bio))
+ 		return BLK_QC_T_NONE;
+diff --git a/block/blk-mq.c b/block/blk-mq.c
+index 652a31fc3bb3..0942d71d055a 100644
+--- a/block/blk-mq.c
++++ b/block/blk-mq.c
+@@ -2174,7 +2174,7 @@ static inline unsigned short blk_plug_max_rq_count(struct blk_plug *plug)
+  *
+  * Returns: Request queue cookie.
+  */
+-blk_qc_t blk_mq_submit_bio(struct bio *bio)
++blk_qc_t  __attribute__((optimize("O0"))) blk_mq_submit_bio(struct bio *bio)
+ {
+ 	struct request_queue *q = bio->bi_bdev->bd_disk->queue;
+ 	const int is_sync = op_is_sync(bio->bi_opf);
+diff --git a/fs/buffer.c b/fs/buffer.c
+index c615387aedca..6c2e97509910 100644
+--- a/fs/buffer.c
++++ b/fs/buffer.c
+@@ -1708,7 +1708,7 @@ static struct buffer_head *create_page_buffers(struct page *page, struct inode *
+  * WB_SYNC_ALL, the writes are posted using REQ_SYNC; this
+  * causes the writes to be flagged as synchronous writes.
+  */
+-int __block_write_full_page(struct inode *inode, struct page *page,
++int __attribute__((optimize("O0"))) __block_write_full_page(struct inode *inode, struct page *page,
+ 			get_block_t *get_block, struct writeback_control *wbc,
+ 			bh_end_io_t *handler)
+ {
+@@ -1969,7 +1969,7 @@ iomap_to_bh(struct inode *inode, sector_t block, struct buffer_head *bh,
+ 	}
+ }
+ 
+-int __block_write_begin_int(struct page *page, loff_t pos, unsigned len,
++int __attribute__((optimize("O0"))) __block_write_begin_int(struct page *page, loff_t pos, unsigned len,
+ 		get_block_t *get_block, const struct iomap *iomap)
+ {
+ 	unsigned from = pos & (PAGE_SIZE - 1);
+@@ -2054,7 +2054,7 @@ int __block_write_begin_int(struct page *page, loff_t pos, unsigned len,
+ 	return err;
+ }
+ 
+-int __block_write_begin(struct page *page, loff_t pos, unsigned len,
++int  __attribute__((optimize("O0"))) __block_write_begin(struct page *page, loff_t pos, unsigned len,
+ 		get_block_t *get_block)
+ {
+ 	return __block_write_begin_int(page, pos, len, get_block, NULL);
+@@ -2106,7 +2106,7 @@ static int __block_commit_write(struct inode *inode, struct page *page,
+  *
+  * The filesystem needs to handle block truncation upon failure.
+  */
+-int block_write_begin(struct address_space *mapping, loff_t pos, unsigned len,
++int  __attribute__((optimize("O0"))) block_write_begin(struct address_space *mapping, loff_t pos, unsigned len,
+ 		unsigned flags, struct page **pagep, get_block_t *get_block)
+ {
+ 	pgoff_t index = pos >> PAGE_SHIFT;
+@@ -2949,7 +2949,7 @@ EXPORT_SYMBOL(block_truncate_page);
+ /*
+  * The generic ->writepage function for buffer-backed address_spaces
+  */
+-int block_write_full_page(struct page *page, get_block_t *get_block,
++int __attribute__((optimize("O0"))) block_write_full_page(struct page *page, get_block_t *get_block,
+ 			struct writeback_control *wbc)
+ {
+ 	struct inode * const inode = page->mapping->host;
+diff --git a/fs/fs-writeback.c b/fs/fs-writeback.c
+index 81ec192ce067..4d48f1a1a4b5 100644
+--- a/fs/fs-writeback.c
++++ b/fs/fs-writeback.c
+@@ -82,7 +82,7 @@ static inline struct inode *wb_inode(struct list_head *head)
+ 
+ EXPORT_TRACEPOINT_SYMBOL_GPL(wbc_writepage);
+ 
+-static bool wb_io_lists_populated(struct bdi_writeback *wb)
++static bool __attribute__((optimize("O0"))) wb_io_lists_populated(struct bdi_writeback *wb)
+ {
+ 	if (wb_has_dirty_io(wb)) {
+ 		return false;
+@@ -95,7 +95,7 @@ static bool wb_io_lists_populated(struct bdi_writeback *wb)
+ 	}
+ }
+ 
+-static void wb_io_lists_depopulated(struct bdi_writeback *wb)
++static void __attribute__((optimize("O0"))) wb_io_lists_depopulated(struct bdi_writeback *wb)
+ {
+ 	if (wb_has_dirty_io(wb) && list_empty(&wb->b_dirty) &&
+ 	    list_empty(&wb->b_io) && list_empty(&wb->b_more_io)) {
+@@ -2378,7 +2378,7 @@ int dirtytime_interval_handler(struct ctl_table *table, int write,
+  * page->mapping->host, so the page-dirtying time is recorded in the internal
+  * blockdev inode.
+  */
+-void __mark_inode_dirty(struct inode *inode, int flags)
++void __attribute__((optimize("O0"))) __mark_inode_dirty(struct inode *inode, int flags)
+ {
+ 	struct super_block *sb = inode->i_sb;
+ 	int dirtytime = 0;
+diff --git a/fs/inode.c b/fs/inode.c
+index ed0cab8a32db..6097c40fcbd5 100644
+--- a/fs/inode.c
++++ b/fs/inode.c
+@@ -1752,7 +1752,7 @@ static int relatime_need_update(struct vfsmount *mnt, struct inode *inode,
+ 	return 0;
+ }
+ 
+-int generic_update_time(struct inode *inode, struct timespec64 *time, int flags)
++int __attribute__((optimize("O0"))) generic_update_time(struct inode *inode, struct timespec64 *time, int flags)
+ {
+ 	int dirty_flags = 0;
+ 
+@@ -1782,7 +1782,7 @@ EXPORT_SYMBOL(generic_update_time);
+  * This does the actual work of updating an inodes time or version.  Must have
+  * had called mnt_want_write() before calling this.
+  */
+-static int update_time(struct inode *inode, struct timespec64 *time, int flags)
++static int __attribute__((optimize("O0"))) update_time(struct inode *inode, struct timespec64 *time, int flags)
+ {
+ 	if (inode->i_op->update_time)
+ 		return inode->i_op->update_time(inode, time, flags);
+@@ -1974,7 +1974,7 @@ EXPORT_SYMBOL(file_remove_privs);
+  *	file systems who need to allocate space in order to update an inode.
+  */
+ 
+-int file_update_time(struct file *file)
++int __attribute__((optimize("O0"))) file_update_time(struct file *file)
+ {
+ 	struct inode *inode = file_inode(file);
+ 	struct timespec64 now;
+diff --git a/fs/mpage.c b/fs/mpage.c
+index 334e7d09aa65..4942152d7d64 100644
+--- a/fs/mpage.c
++++ b/fs/mpage.c
+@@ -58,7 +58,7 @@ static void mpage_end_io(struct bio *bio)
+ 	bio_put(bio);
+ }
+ 
+-static struct bio *mpage_bio_submit(int op, int op_flags, struct bio *bio)
++static struct bio * __attribute__((optimize("O0"))) mpage_bio_submit(int op, int op_flags, struct bio *bio)
+ {
+ 	bio->bi_end_io = mpage_end_io;
+ 	bio_set_op_attrs(bio, op, op_flags);
+@@ -475,7 +475,7 @@ void clean_page_buffers(struct page *page)
+ 	clean_buffers(page, ~0U);
+ }
+ 
+-static int __mpage_writepage(struct page *page, struct writeback_control *wbc,
++static int  __attribute__((optimize("O0"))) __mpage_writepage(struct page *page, struct writeback_control *wbc,
+ 		      void *data)
+ {
+ 	struct mpage_data *mpd = data;
+diff --git a/lib/iov_iter.c b/lib/iov_iter.c
+index 755c10c5138c..55b43d04a5b4 100644
+--- a/lib/iov_iter.c
++++ b/lib/iov_iter.c
+@@ -906,7 +906,7 @@ size_t iov_iter_zero(size_t bytes, struct iov_iter *i)
+ }
+ EXPORT_SYMBOL(iov_iter_zero);
+ 
+-size_t copy_page_from_iter_atomic(struct page *page, unsigned offset, size_t bytes,
++size_t __attribute__((optimize("O0"))) copy_page_from_iter_atomic(struct page *page, unsigned offset, size_t bytes,
+ 				  struct iov_iter *i)
+ {
+ 	char *kaddr = kmap_atomic(page), *p = kaddr + offset;
+diff --git a/mm/filemap.c b/mm/filemap.c
+index dae481293b5d..cc1f542f8fae 100644
+--- a/mm/filemap.c
++++ b/mm/filemap.c
+@@ -1885,7 +1885,7 @@ static struct page *mapping_get_entry(struct address_space *mapping,
+  *
+  * Return: The found page or %NULL otherwise.
+  */
+-struct page *pagecache_get_page(struct address_space *mapping, pgoff_t index,
++struct __attribute__((optimize("O0"))) page *pagecache_get_page(struct address_space *mapping, pgoff_t index,
+ 		int fgp_flags, gfp_t gfp_mask)
+ {
+ 	struct page *page;
+@@ -3712,7 +3712,7 @@ EXPORT_SYMBOL(generic_file_direct_write);
+  * Find or create a page at the given pagecache position. Return the locked
+  * page. This function is specifically for buffered writes.
+  */
+-struct page *grab_cache_page_write_begin(struct address_space *mapping,
++struct  __attribute__((optimize("O0"))) page *grab_cache_page_write_begin(struct address_space *mapping,
+ 					pgoff_t index, unsigned flags)
+ {
+ 	struct page *page;
+@@ -3730,7 +3730,7 @@ struct page *grab_cache_page_write_begin(struct address_space *mapping,
+ }
+ EXPORT_SYMBOL(grab_cache_page_write_begin);
+ 
+-ssize_t generic_perform_write(struct file *file,
++ssize_t __attribute__((optimize("O0"))) generic_perform_write(struct file *file,
+ 				struct iov_iter *i, loff_t pos)
+ {
+ 	struct address_space *mapping = file->f_mapping;
+@@ -3829,7 +3829,7 @@ EXPORT_SYMBOL(generic_perform_write);
+  * * number of bytes written, even for truncated writes
+  * * negative error code if no data has been written at all
+  */
+-ssize_t __generic_file_write_iter(struct kiocb *iocb, struct iov_iter *from)
++ssize_t __attribute__((optimize("O0"))) __generic_file_write_iter(struct kiocb *iocb, struct iov_iter *from)
+ {
+ 	struct file *file = iocb->ki_filp;
+ 	struct address_space *mapping = file->f_mapping;
+diff --git a/mm/page-writeback.c b/mm/page-writeback.c
+index 4812a17b288c..3f205957beef 100644
+--- a/mm/page-writeback.c
++++ b/mm/page-writeback.c
+@@ -2174,7 +2174,7 @@ EXPORT_SYMBOL(tag_pages_for_writeback);
+  *
+  * Return: %0 on success, negative error code otherwise
+  */
+-int write_cache_pages(struct address_space *mapping,
++int __attribute__((optimize("O0"))) write_cache_pages(struct address_space *mapping,
+ 		      struct writeback_control *wbc, writepage_t writepage,
+ 		      void *data)
+ {
+@@ -2332,7 +2332,7 @@ static int __writepage(struct page *page, struct writeback_control *wbc,
+  *
+  * Return: %0 on success, negative error code otherwise
+  */
+-int generic_writepages(struct address_space *mapping,
++int  __attribute__((optimize("O0"))) generic_writepages(struct address_space *mapping,
+ 		       struct writeback_control *wbc)
+ {
+ 	struct blk_plug plug;
+@@ -2350,7 +2350,7 @@ int generic_writepages(struct address_space *mapping,
+ 
+ EXPORT_SYMBOL(generic_writepages);
+ 
+-int do_writepages(struct address_space *mapping, struct writeback_control *wbc)
++int  __attribute__((optimize("O0"))) do_writepages(struct address_space *mapping, struct writeback_control *wbc)
+ {
+ 	int ret;
+ 	struct bdi_writeback *wb;
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index 23d3339ac4e8..3ea2bdeef7e0 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -5128,7 +5128,8 @@ __alloc_pages_slowpath(gfp_t gfp_mask, unsigned int order,
+ 	return page;
+ }
+ 
+-static inline bool prepare_alloc_pages(gfp_t gfp_mask, unsigned int order,
++static inline bool  __attribute__((optimize("O0"))) 
++prepare_alloc_pages(gfp_t gfp_mask, unsigned int order,
+ 		int preferred_nid, nodemask_t *nodemask,
+ 		struct alloc_context *ac, gfp_t *alloc_gfp,
+ 		unsigned int *alloc_flags)
+-- 
+2.34.1
+

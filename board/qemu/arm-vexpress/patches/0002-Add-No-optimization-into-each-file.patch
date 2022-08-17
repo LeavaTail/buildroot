@@ -1,0 +1,93 @@
+From ea18cb2e4fa49463eb6c8b533712d2a67e0da2ce Mon Sep 17 00:00:00 2001
+From: LeavaTail <starbow.duster@gmail.com>
+Date: Wed, 17 Aug 2022 00:02:17 +0900
+Subject: [PATCH 2/2] Add No-optimization into each file
+
+---
+ fs/Makefile       |  3 +++
+ fs/exfat/Makefile | 11 +++++++++++
+ fs/ext2/Makefile  |  3 +++
+ fs/jbd2/Makefile  |  6 ++++++
+ mm/Makefile       |  2 ++
+ 5 files changed, 25 insertions(+)
+
+diff --git a/fs/Makefile b/fs/Makefile
+index 84c5e4cdfee5..0e8a73cfc76a 100644
+--- a/fs/Makefile
++++ b/fs/Makefile
+@@ -16,6 +16,9 @@ obj-y :=	open.o read_write.o file_table.o super.o \
+ 		fs_types.o fs_context.o fs_parser.o fsopen.o init.o \
+ 		kernel_read_file.o remap_range.o
+ 
++CFLAGS_read_write.o = -O0
++CFLAGS_fs-writeback.o = -O0
++
+ ifeq ($(CONFIG_BLOCK),y)
+ obj-y +=	buffer.o direct-io.o mpage.o
+ else
+diff --git a/fs/exfat/Makefile b/fs/exfat/Makefile
+index ed51926a4971..4a0faa09e296 100644
+--- a/fs/exfat/Makefile
++++ b/fs/exfat/Makefile
+@@ -4,5 +4,16 @@
+ #
+ obj-$(CONFIG_EXFAT_FS) += exfat.o
+ 
++CFLAGS_inode.o = -O0
++CFLAGS_namei.o = -O0
++CFLAGS_dir.o = -O0
++CFLAGS_super.o = -O0
++CFLAGS_fatent.o = -O0
++CFLAGS_cache.o = -O0
++CFLAGS_nls.o = -O0
++CFLAGS_misc.o = -O0
++CFLAGS_file.o = -O0
++CFLAGS_balloc.o = -O0
++
+ exfat-y	:= inode.o namei.o dir.o super.o fatent.o cache.o nls.o misc.o \
+ 	   file.o balloc.o
+diff --git a/fs/ext2/Makefile b/fs/ext2/Makefile
+index 311479d864a7..184c3e6630d2 100644
+--- a/fs/ext2/Makefile
++++ b/fs/ext2/Makefile
+@@ -8,6 +8,9 @@ obj-$(CONFIG_EXT2_FS) += ext2.o
+ ext2-y := balloc.o dir.o file.o ialloc.o inode.o \
+ 	  ioctl.o namei.o super.o symlink.o
+ 
++CFLAGS_file.o = -O0
++CFLAGS_inode.o = -O0
++
+ ext2-$(CONFIG_EXT2_FS_XATTR)	 += xattr.o xattr_user.o xattr_trusted.o
+ ext2-$(CONFIG_EXT2_FS_POSIX_ACL) += acl.o
+ ext2-$(CONFIG_EXT2_FS_SECURITY)	 += xattr_security.o
+diff --git a/fs/jbd2/Makefile b/fs/jbd2/Makefile
+index 126b4da6c7de..4e8b0dfbb3df 100644
+--- a/fs/jbd2/Makefile
++++ b/fs/jbd2/Makefile
+@@ -5,4 +5,10 @@
+ 
+ obj-$(CONFIG_JBD2) += jbd2.o
+ 
++CFLAGS_transaction.o = -O0
++CFLAGS_commit.o = -O0
++CFLAGS_recovery.o = -O0
++CFLAGS_checkpoint.o = -O0
++CFLAGS_revoke.o = -O0
++CFLAGS_journal.o = -O0
+ jbd2-objs := transaction.o commit.o recovery.o checkpoint.o revoke.o journal.o
+diff --git a/mm/Makefile b/mm/Makefile
+index fc60a40ce954..b1560f9b3710 100644
+--- a/mm/Makefile
++++ b/mm/Makefile
+@@ -31,6 +31,8 @@ KCOV_INSTRUMENT_mmzone.o := n
+ KCOV_INSTRUMENT_vmstat.o := n
+ KCOV_INSTRUMENT_failslab.o := n
+ 
++CFLAGS_filemap.o = -O0
++
+ CFLAGS_init-mm.o += $(call cc-disable-warning, override-init)
+ CFLAGS_init-mm.o += $(call cc-disable-warning, initializer-overrides)
+ 
+-- 
+2.34.1
+

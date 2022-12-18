@@ -1,0 +1,3 @@
+fsgqa -1 fsgqa -1 = /home/fsgqa /bin/sh - xfstests User1
+123456-fsgqa -1 123456-fsgqa -1 = - /bin/sh - xfstests User2
+fsgqa2 -1 fsgqa2 -1 = /home/fsgqa2 /bin/sh - xfstests User3

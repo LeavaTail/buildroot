@@ -1,0 +1,7 @@
+config BR2_PACKAGE_FSVERITY_UTILS
+	bool "fsverity-utils"
+	select BR2_PACKAGE_OPENSSL
+	help
+	  A set of userspace utilities for fs-verity.
+
+	  git://git.kernel.org/pub/scm/linux/kernel/git/ebiggers/fsverity-utils.git
